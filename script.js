@@ -74,6 +74,28 @@ function renderNav() {
 }
 renderNav();
 
+/* Ícones em SVG */
+const ICONS = {
+  panel: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20c-.3-2.4-1.5-4-3.5-4.8"/>',
+  out: '<path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M16 8l4 4-4 4M20 12H9"/>',
+  shield: '<path d="M12 3l8 3v6c0 4.5-3.3 8-8 9-4.7-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.6A8 8 0 1 1 21 12z"/>'
+};
+const ico = n => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]}</svg>`;
+$$('[data-ico]').forEach(e => e.innerHTML = ico(e.dataset.ico));
+
+/* No celular, cada linha da tabela mostra o nome da coluna */
+function labelTables() {
+  $$('table').forEach(t => {
+    const h = [...t.tHead.rows[0].cells].map(c => c.textContent);
+    [...t.tBodies[0].rows].forEach(r => [...r.cells].forEach((c, i) => { if (c.colSpan === 1) c.dataset.label = h[i] || ''; }));
+  });
+}
+if ($('.main')) new MutationObserver(labelTables).observe($('.main'), { childList: true, subtree: true });
+
 /* Troca de seções nos dashboards */
 function initViews(titles) {
   const show = v => {
@@ -81,7 +103,15 @@ function initViews(titles) {
     $$('.side nav button').forEach(b => b.classList.toggle('active', b.dataset.go === v));
     $('#title').textContent = titles[v];
   };
-  $$('.side nav button').forEach(b => b.onclick = () => show(b.dataset.go));
+  const map = { overview: 'panel', mine: 'list', new: 'plus', listings: 'list', users: 'users' };
+  $$('.side nav button').forEach(b => {
+    b.innerHTML = `${ico(map[b.dataset.go])}<span>${b.textContent}</span>`;
+    b.onclick = () => show(b.dataset.go);
+  });
+  const out = $('.side .out'), u = me();
+  out.innerHTML = ico('out') + '<span>Sair</span>';
+  $('.side nav').insertAdjacentHTML('beforebegin', '<small class="side-label">Menu</small>');
+  if (u) out.insertAdjacentHTML('beforebegin', `<div class="side-user"><span class="av">${esc(u.name[0].toUpperCase())}</span><div><b>${esc(u.name)}</b><small>${u.role === 'admin' ? 'Administrador' : 'Vendedor'}</small></div></div>`);
   window.show = show; show(Object.keys(titles)[0]);
 }
 
@@ -90,7 +120,7 @@ function thumb(l) {
   const [a, b] = GAMES[l.game] || GAMES.Outro;
   const grad = `linear-gradient(135deg,${a},${b})`;
   const img = l.img && /^https?:\/\//.test(l.img) ? `url('${esc(l.img)}'),` : '';
-  return `<div class="thumb" style="background-image:${img}${grad}">${l.status === 'sold' ? '<span class="tag">Vendido</span>' : ''}<b>${esc(l.game)}</b></div>`;
+  return `<div class="thumb" data-ini="${esc(l.game.split(' ').map(w => w[0]).join('').slice(0, 3))}" style="background-image:${img}${grad}">${l.status === 'sold' ? '<span class="tag">Vendido</span>' : ''}<b>${esc(l.game)}</b></div>`;
 }
 const cardHTML = l => `<article class="card" data-id="${l.id}">${thumb(l)}<div class="card-body"><h3>${esc(l.title)}</h3><div class="chips"><span class="chip">${esc(l.rank || 'Sem rank')}</span></div><div class="card-foot"><span class="price">${brl(l.price)}</span><span class="seller">${esc(sellerName(l.uid))}</span></div></div></article>`;
 
