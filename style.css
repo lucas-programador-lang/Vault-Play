@@ -174,3 +174,61 @@ tbody tr:hover td{background:color-mix(in srgb,var(--primary-l) 30%,#fff)}
  .search{padding:6px}.search select{flex:1}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ===== Logos dos jogos ===== */
+.glogo{position:relative;display:inline-grid;place-items:center;width:var(--s,40px);height:var(--s,40px);border-radius:28%;background:linear-gradient(135deg,var(--a),var(--b));color:#fff;overflow:hidden;flex:none;font-size:calc(var(--s,40px)*.34)}
+.glogo em{font-style:normal;font-weight:800;letter-spacing:-.03em}
+.glogo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:12%}
+.thumb .glogo{position:absolute;top:12px;left:12px;z-index:2;border:2px solid rgba(255,255,255,.9);box-shadow:0 8px 18px -8px rgba(0,0,0,.6)}
+.thumb .tag{left:auto;right:12px}
+.thumb.photo::after{display:none}
+.rowtitle{display:flex;align-items:center;gap:12px;text-align:left}
+.strip{display:flex;gap:8px;padding:12px 24px 0;overflow-x:auto}
+.strip img{width:66px;height:50px;object-fit:cover;border-radius:10px;cursor:pointer;border:2px solid var(--line);flex:none}
+.strip img:hover{border-color:var(--primary)}
+
+/* ===== Envio de fotos ===== */
+.field .drop{display:grid;justify-items:center;gap:4px;text-align:center;padding:26px 16px;border:2px dashed color-mix(in srgb,var(--primary) 45%,var(--line));border-radius:16px;background:var(--primary-l);cursor:pointer;font-weight:700;transition:background .15s,border-color .15s}
+.field .drop small{color:var(--muted);font-weight:500}
+.field .drop:hover,.field .drop.over{border-color:var(--primary);background:color-mix(in srgb,var(--primary-l) 65%,#fff)}
+.previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+.previews:empty{display:none}
+.pv{position:relative;aspect-ratio:4/3;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.pv img{width:100%;height:100%;object-fit:cover;display:block}
+.pv span{position:absolute;left:8px;bottom:8px;background:var(--primary);color:#fff;font-size:.7rem;font-weight:800;padding:2px 9px;border-radius:99px}
+body.admin .pv span{color:#1b1200}
+.pv button{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(11,34,51,.75);color:#fff;font-size:1rem;line-height:1;cursor:pointer}
+
+/* ===== Escolha do jogo e gestão de jogos ===== */
+.gamepick{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.gtile{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line);background:#fff;cursor:pointer;font-weight:700;font-size:.88rem;text-align:left;transition:border-color .15s,background .15s}
+.gtile:hover{border-color:var(--primary)}
+.gtile.on{border-color:var(--primary);background:var(--primary-l);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 18%,transparent)}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.gcard{display:grid;justify-items:start;gap:6px;padding:18px;border:1px solid var(--line);border-radius:18px;background:#fff}
+.gcard .actions{margin-top:8px}
+.gform{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.gform input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:12px;padding:11px 14px;background:#f9fcfe}
+
+/* ===== Sidebar: atalhos, contador e modo recolhido ===== */
+.side{overflow-y:auto}
+.side nav button{position:relative}
+.side-link{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:12px;color:inherit;font-weight:600;font-size:1rem;background:none;border:0;cursor:pointer;text-align:left;transition:background .15s,color .15s}
+.side-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.count{margin-left:auto;background:var(--grad);color:#fff;font-style:normal;font-size:.72rem;font-weight:800;min-width:22px;height:22px;padding:0 7px;border-radius:99px;display:grid;place-items:center}
+body.admin .count{color:#1b1200}
+.side nav button.active .count{background:rgba(255,255,255,.28)}
+@media(min-width:821px){
+ .collapsed .dash{grid-template-columns:88px 1fr}
+ .collapsed .side{padding-inline:12px}
+ .collapsed .side .logo{font-size:0;justify-content:center;padding-inline:0}
+ .collapsed .side nav button span,.collapsed .side .out span,.collapsed .side-link span,.collapsed .side-label,.collapsed .side-user>div{display:none}
+ .collapsed .side nav button,.collapsed .side .out,.collapsed .side-link{justify-content:center;padding-inline:0}
+ .collapsed .side-user{justify-content:center;padding:8px}
+ .collapsed .count{position:absolute;top:3px;right:8px;min-width:17px;height:17px;font-size:.62rem;padding:0 4px}
+ .collapsed #toggle svg{transform:rotate(180deg)}
+}
+@media(max-width:820px){
+ .side{overflow:visible}.side-link{display:none}.strip{padding:12px 18px 0}
+ .count{position:absolute;top:2px;right:calc(50% - 22px);min-width:17px;height:17px;font-size:.62rem;padding:0 4px;margin:0}
+}
