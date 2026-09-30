@@ -4,66 +4,54 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>VaultPlay | Marketplace de contas de jogos</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="description" content="Compre e venda contas de jogos com contato direto pelo WhatsApp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script>try{if(localStorage.getItem('theme')!=='light')document.documentElement.setAttribute('data-theme','dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}</script>
 </head>
 <body>
-<header>
- <div class="c hd">
-  <a class="brand" href="#/"><svg width="30" height="30" viewBox="0 0 30 30"><rect x="2" y="9" width="12" height="16" rx="3" fill="#f26b4f" transform="rotate(-8 8 17)"/><rect x="10" y="5" width="12" height="16" rx="3" fill="#06b6d4" transform="rotate(6 16 13)"/></svg>Vault<em>Play</em></a>
-  <nav class="d"><a href="#/" data-r="home">Explorar</a><a href="#/vender" data-r="vender">Vender conta</a><a href="#/como" data-r="como">Como funciona</a></nav>
-  <div class="act">
-   <button class="ib" id="tg" aria-label="Alternar tema"></button>
-   <a class="btn p hide-m" href="#/vender" style="padding:10px 18px">Anunciar conta</a>
-   <button class="ib ham" id="hm" aria-label="Menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+<header class="site-header" id="siteHeader">
+  <div class="header-inner container">
+    <a href="#/" class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30" fill="none"><rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/><rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/></svg></span>
+      <span class="brand-name">Vault<em>Play</em></span>
+    </a>
+    <nav class="main-nav">
+      <a href="#/explorar" data-r="explorar">Explorar</a>
+      <a href="#/vender" data-r="vender">Vender conta</a>
+      <a href="#/como" data-r="como">Como funciona</a>
+    </nav>
+    <div class="header-actions">
+      <button id="themeToggle" class="btn btn-ghost btn-sm" aria-label="Alternar tema" style="padding:6px 12px;margin-right:8px"></button>
+      <a href="#/vender" class="btn btn-primary btn-sm">Anunciar conta</a>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu"><span></span><span></span><span></span></button>
+    </div>
   </div>
- </div>
- <div class="mob" id="mob"><a href="#/">Explorar</a><a href="#/vender">Vender conta</a><a href="#/como">Como funciona</a></div>
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="#/explorar">Explorar contas</a>
+    <a href="#/vender">Vender conta</a>
+    <a href="#/como">Como funciona</a>
+  </nav>
 </header>
 
-<div id="v-home">
- <div class="hero"><div class="c">
-  <span class="pill"><i></i>Contato direto entre comprador e vendedor</span>
-  <h1>O marketplace para <span>comprar e vender</span> contas de jogos</h1>
-  <p>Publique seu anúncio em minutos e receba interessados direto no WhatsApp, sem intermediários.</p>
-  <div class="hb"><a class="btn p" href="#explorar" id="go">Explorar contas</a><a class="btn g" href="#/vender">Vender minha conta</a></div>
-  <div class="trust"><div class="tr"><b id="s1">0</b><small>anúncios ativos</small></div><div class="tr"><b id="s2">0</b><small>jogos</small></div><div class="tr"><b>Grátis</b><small>para anunciar</small></div></div>
- </div></div>
- <div class="c"><section class="s" id="explorar">
-  <div class="sh"><h2>Contas disponíveis</h2><p>Filtre por jogo ou busque por rank, skins e itens.</p></div>
-  <div class="sb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="q" id="q" placeholder="Buscar conta, skin, rank..."></div>
-  <div class="chips" id="chips"></div>
-  <div class="grid" id="list"></div>
-  <div class="empty hide" id="empty">Nenhum anúncio encontrado.</div>
- </section></div>
-</div>
+<main id="app" role="main"></main>
 
-<div class="c hide" id="v-sell"><section class="s">
- <div class="sh"><h2>Anunciar minha conta</h2><p>Só o seu WhatsApp fica disponível para os interessados.</p></div>
- <div class="form">
-  <label>Jogo<input id="f-game" placeholder="Ex.: Free Fire, Fortnite, Valorant" maxlength="40"></label>
-  <label>Título do anúncio<input id="f-title" placeholder="Ex.: Conta nível 70 com skins raras" maxlength="80"></label>
-  <label>Descrição<textarea id="f-desc" rows="4" placeholder="Nível, rank, itens, skins, vinculação..." maxlength="500"></textarea></label>
-  <label>Preço (R$)<input id="f-price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00"></label>
-  <label>WhatsApp com DDD<input id="f-phone" type="tel" placeholder="11999999999" inputmode="numeric"></label>
-  <button class="btn p" id="publish">Publicar anúncio</button>
-  <div id="msg" style="color:#e5484d;font-size:.85rem"></div>
- </div>
-</section></div>
-
-<div class="c hide" id="v-how"><section class="s">
- <div class="sh"><h2>Como funciona</h2><p>Três passos, sem burocracia.</p></div>
- <div class="steps">
-  <div class="st"><b>1</b><h3>Anuncie</h3><p>Publique jogo, descrição, preço e seu WhatsApp.</p></div>
-  <div class="st"><b>2</b><h3>Encontre</h3><p>O comprador busca por jogo ou palavra-chave.</p></div>
-  <div class="st"><b>3</b><h3>Negocie</h3><p>O botão de contato abre a conversa direto com o vendedor.</p></div>
- </div>
- <div class="warn"><b>Segurança:</b> desconfie de preços muito abaixo do mercado, não pague antes de verificar a conta e use meios de pagamento com proteção. Confira também se a venda é permitida pelos termos do jogo.</div>
-</section></div>
-
-<footer><div class="c"><span>© 2026 VaultPlay. Todos os direitos reservados.</span><span>Os anúncios são de responsabilidade de cada vendedor.</span></div></footer>
-<div class="toast" id="toast">Anúncio publicado!</div>
-
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Vault<em>Play</em></span>
+      <p>O marketplace para comprar e vender contas de jogos com contato direto.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Plataforma</h4>
+      <a href="#/explorar">Explorar contas</a>
+      <a href="#/vender">Vender conta</a>
+      <a href="#/como">Como funciona</a>
+    </div>
+  </div>
+  <div class="container" style="padding:18px 24px;opacity:.7;font-size:13px">© 2026 VaultPlay. Os anúncios são de responsabilidade de cada vendedor.</div>
+</footer>
 <script src="script.js"></script>
 </body>
 </html>
