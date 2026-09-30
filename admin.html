@@ -16,6 +16,7 @@
       <button data-go="overview">Visão geral</button>
       <button data-go="listings">Anúncios</button>
       <button data-go="users">Usuários</button>
+      <button data-go="games">Jogos</button>
     </nav>
     <button class="out" id="logout">Sair</button>
   </aside>
@@ -65,6 +66,17 @@
             <tbody id="user-rows"></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <section data-view="games">
+      <div class="panel">
+        <h2>Jogos e logos</h2>
+        <form class="gform" id="game-form">
+          <input name="name" placeholder="Nome de um novo jogo" required maxlength="30">
+          <button class="btn btn-primary btn-sm" type="submit">Adicionar jogo</button>
+        </form>
+        <div class="gcards" id="game-rows"></div>
       </div>
     </section>
   </main>
