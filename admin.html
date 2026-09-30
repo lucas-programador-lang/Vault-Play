@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administração — VaultPlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="admin">
+<div class="dash">
+  <aside class="side">
+    <a class="logo" href="index.html"><i>V</i>Admin</a>
+    <nav>
+      <button data-go="overview">Visão geral</button>
+      <button data-go="listings">Anúncios</button>
+      <button data-go="users">Usuários</button>
+    </nav>
+    <button class="out" id="logout">Sair</button>
+  </aside>
+
+  <main class="main">
+    <div class="top"><h1 id="title"></h1><span class="who" id="who"></span></div>
+
+    <section data-view="overview">
+      <div class="stats" id="stats"></div>
+      <div class="panel">
+        <h2>Aguardando aprovação</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Anúncio</th><th>Vendedor</th><th>Preço</th><th>Ações</th></tr></thead>
+            <tbody id="pending-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section data-view="listings">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Todos os anúncios</h2>
+          <select id="status-filter" aria-label="Filtrar por status">
+            <option value="">Todos os status</option>
+            <option value="pending">Em análise</option>
+            <option value="approved">Ativos</option>
+            <option value="sold">Vendidos</option>
+            <option value="rejected">Recusados</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Anúncio</th><th>Vendedor</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="all-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section data-view="users">
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Anúncios</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="user-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="script.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
