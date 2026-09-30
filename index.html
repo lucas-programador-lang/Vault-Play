@@ -1,57 +1,52 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>VaultPlay | Marketplace de contas de jogos</title>
-<meta name="description" content="Compre e venda contas de jogos com contato direto pelo WhatsApp.">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VaultPlay — Contas de jogos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<script>try{if(localStorage.getItem('theme')!=='light')document.documentElement.setAttribute('data-theme','dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}</script>
 </head>
 <body>
-<header class="site-header" id="siteHeader">
-  <div class="header-inner container">
-    <a href="#/" class="brand">
-      <span class="brand-mark" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30" fill="none"><rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/><rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/></svg></span>
-      <span class="brand-name">Vault<em>Play</em></span>
-    </a>
-    <nav class="main-nav">
-      <a href="#/explorar" data-r="explorar">Explorar</a>
-      <a href="#/vender" data-r="vender">Vender conta</a>
-      <a href="#/como" data-r="como">Como funciona</a>
-    </nav>
-    <div class="header-actions">
-      <button id="themeToggle" class="btn btn-ghost btn-sm" aria-label="Alternar tema" style="padding:6px 12px;margin-right:8px"></button>
-      <a href="#/vender" class="btn btn-primary btn-sm">Anunciar conta</a>
-      <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu"><span></span><span></span><span></span></button>
-    </div>
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><i>V</i>VaultPlay</a>
+    <div class="nav-actions" id="nav-actions"></div>
   </div>
-  <nav class="mobile-nav" id="mobileNav">
-    <a href="#/explorar">Explorar contas</a>
-    <a href="#/vender">Vender conta</a>
-    <a href="#/como">Como funciona</a>
-  </nav>
 </header>
 
-<main id="app" role="main"></main>
-
-<footer class="site-footer">
-  <div class="container footer-grid">
-    <div class="footer-brand">
-      <span class="brand-name">Vault<em>Play</em></span>
-      <p>O marketplace para comprar e vender contas de jogos com contato direto.</p>
-    </div>
-    <div class="footer-col">
-      <h4>Plataforma</h4>
-      <a href="#/explorar">Explorar contas</a>
-      <a href="#/vender">Vender conta</a>
-      <a href="#/como">Como funciona</a>
+<section class="hero">
+  <div class="wrap">
+    <h1>Encontre a conta de jogo certa, direto com o vendedor.</h1>
+    <p class="lead">Veja anúncios de Valorant, Free Fire, Fortnite e mais. Escolha a conta e fale com quem está vendendo.</p>
+    <div class="search">
+      <input id="q" type="search" placeholder="Buscar por jogo, rank ou título" aria-label="Buscar contas">
+      <select id="game" aria-label="Jogo"><option value="">Todos os jogos</option></select>
+      <select id="sort" aria-label="Ordenar">
+        <option value="new">Mais recentes</option>
+        <option value="low">Menor preço</option>
+        <option value="high">Maior preço</option>
+      </select>
     </div>
   </div>
-  <div class="container" style="padding:18px 24px;opacity:.7;font-size:13px">© 2026 VaultPlay. Os anúncios são de responsabilidade de cada vendedor.</div>
-</footer>
+</section>
+
+<main class="wrap section">
+  <div class="section-head">
+    <h2>Contas à venda</h2>
+    <span id="count"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <p style="margin-top:34px;text-align:center">
+    <a class="btn btn-primary" href="dashboard.html">Anunciar minha conta</a>
+  </p>
+</main>
+
+<footer class="foot"><div class="wrap">VaultPlay. Negocie com cuidado e confira a conta antes de pagar.</div></footer>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
 <script src="script.js"></script>
 </body>
 </html>
