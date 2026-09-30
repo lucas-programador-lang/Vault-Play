@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meu painel — VaultPlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="dash">
+  <aside class="side">
+    <a class="logo" href="index.html"><i>V</i>VaultPlay</a>
+    <nav>
+      <button data-go="overview">Visão geral</button>
+      <button data-go="mine">Meus anúncios</button>
+      <button data-go="new">Novo anúncio</button>
+    </nav>
+    <button class="out" id="logout">Sair</button>
+  </aside>
+
+  <main class="main">
+    <div class="top"><h1 id="title"></h1><span class="who" id="who"></span></div>
+
+    <section data-view="overview">
+      <div class="stats" id="stats"></div>
+      <div class="panel">
+        <h2>Seus anúncios ativos</h2>
+        <div class="grid" id="preview"></div>
+      </div>
+    </section>
+
+    <section data-view="mine">
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Anúncio</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section data-view="new">
+      <div class="panel">
+        <h2>Dados da conta à venda</h2>
+        <form class="form-grid" id="new-form">
+          <div class="field"><label for="f-game">Jogo</label><select id="f-game" name="game" required></select></div>
+          <div class="field"><label for="f-rank">Rank ou nível</label><input id="f-rank" name="rank" placeholder="Ex.: Diamante IV"></div>
+          <div class="field span2"><label for="f-title">Título do anúncio</label><input id="f-title" name="title" required maxlength="70" placeholder="Ex.: Conta Ascendant com 40 skins"></div>
+          <div class="field"><label for="f-price">Preço (R$)</label><input id="f-price" name="price" type="number" min="1" step="0.01" required></div>
+          <div class="field"><label for="f-contact">Seu contato</label><input id="f-contact" name="contact" required placeholder="WhatsApp com DDD ou usuário do Discord"></div>
+          <div class="field span2"><label for="f-img">Link de uma imagem (opcional)</label><input id="f-img" name="img" type="url" placeholder="https://..."></div>
+          <div class="field span2"><label for="f-desc">Descrição</label><textarea id="f-desc" name="desc" required placeholder="Skins, nível, itens raros, o que está incluso na venda"></textarea></div>
+          <div class="span2"><button class="btn btn-primary" type="submit">Enviar para análise</button></div>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="script.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>
