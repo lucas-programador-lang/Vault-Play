@@ -1,56 +1,147 @@
-(function(){
-var KEY="vaultplay_ads",ads=[],cur="",app=document.getElementById("app");
-var seed=[
-{id:1,game:"Free Fire",title:"Conta Diamante com skins raras",desc:"Nível 70, várias skins de arma, e-mail original.",price:250,phone:"11900000001"},
-{id:2,game:"Fortnite",title:"Conta com 80 skins e passe de batalha",desc:"Acesso completo, sem banimentos.",price:400,phone:"11900000002"},
-{id:3,game:"Valorant",title:"Conta Imortal com skins Vandal",desc:"Rank Imortal 1, todos os agentes desbloqueados.",price:600,phone:"11900000003"}];
-var cols=["#06b6d4,#0e7490","#f26b4f,#b93c22","#6366f1,#3730a3","#10b981,#047857","#f59e0b,#b45309"];
-function $(s){return document.querySelector(s)}
-function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function load(){try{var r=localStorage.getItem(KEY);ads=r?JSON.parse(r):seed}catch(e){ads=seed}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(ads))}catch(e){}}
-function games(){var g=[];ads.forEach(function(a){if(g.indexOf(a.game)<0)g.push(a.game)});return g}
-function money(v){return"R$ "+Number(v).toFixed(2).replace(".",",")}
-function card(a){
-  var c=cols[games().indexOf(a.game)%cols.length].split(","),p=String(a.phone).replace(/\D/g,"");
-  return'<article class="project-card"><div class="pc-thumb" style="background:linear-gradient(135deg,'+c[0]+","+c[1]+');display:flex;align-items:center;justify-content:center"><span style="font:800 4.5rem Sora,sans-serif;color:rgba(255,255,255,.3)">'+esc(a.game.charAt(0).toUpperCase())+'</span><span class="pc-cat">'+esc(a.game)+'</span></div><div class="pc-body"><h3>'+esc(a.title)+"</h3><p>"+esc(a.desc)+'</p><div class="pc-meta"><span class="author"><b style="font:700 1.1rem Sora,sans-serif;color:var(--blue-600)">'+money(a.price)+'</b></span><a class="btn btn-primary btn-sm" style="background:#16a34a" target="_blank" rel="noopener" href="https://wa.me/55'+p+"?text="+encodeURIComponent("Olá! Vi sua conta no VaultPlay: "+a.title)+'">Contatar</a></div></div></article>';
+/* VaultPlay — código compartilhado.
+   Os dados ficam no localStorage do navegador (etapa 1).
+   Na etapa 2 trocamos por Firebase para todos verem os mesmos anúncios. */
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+const DB = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem('vp_' + k)); return v ?? d; } catch { return d; } },
+  set(k, v) { localStorage.setItem('vp_' + k, JSON.stringify(v)); }
+};
+
+const GAMES = {
+  'Free Fire': ['#f59e0b', '#b91c1c'], 'Valorant': ['#ef4444', '#7f1d1d'],
+  'League of Legends': ['#0ea5e9', '#1e3a8a'], 'Fortnite': ['#3b82f6', '#0e7490'],
+  'CS2': ['#f59e0b', '#78350f'], 'Roblox': ['#64748b', '#0f172a'],
+  'Minecraft': ['#16a34a', '#14532d'], 'GTA V': ['#10b981', '#134e4a'],
+  'Outro': ['#0891b2', '#0b3a4a']
+};
+const STATUS = { pending: 'Em análise', approved: 'Ativo', sold: 'Vendido', rejected: 'Recusado' };
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const users = () => DB.get('users', []);
+const listings = () => DB.get('listings', []);
+const patch = (id, ch) => DB.set('listings', listings().map(l => l.id === id ? { ...l, ...ch } : l));
+const drop = id => DB.set('listings', listings().filter(l => l.id !== id));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const brl = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const sellerName = id => (users().find(u => u.id === id) || {}).name || 'Vendedor';
+const badge = s => `<span class="badge b-${s}">${STATUS[s]}</span>`;
+
+function toast(msg) {
+  const t = $('#toast'); if (!t) return;
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2600);
 }
-function steps(){return'<section class="section section-alt"><div class="container"><div class="section-head"><div><span class="tag-label">Como funciona</span><h2>Três passos para vender ou comprar</h2></div></div><div class="steps-grid"><div class="step-card"><div class="step-num">Passo 1</div><h3>Anuncie sua conta</h3><p>Informe jogo, descrição, preço e seu WhatsApp. É grátis.</p></div><div class="step-card"><div class="step-num">Passo 2</div><h3>Compradores encontram</h3><p>Busque por jogo, rank, skins ou itens no catálogo.</p></div><div class="step-card"><div class="step-num">Passo 3</div><h3>Negocie direto</h3><p>O botão de contato abre o WhatsApp do vendedor com a mensagem pronta.</p></div></div><p style="margin-top:22px;color:var(--ink-600);font-size:14px"><b>Segurança:</b> desconfie de preços muito baixos, não pague antes de verificar a conta e confira se a venda é permitida pelos termos do jogo.</p></div></section>'}
-function home(){
-  return'<section class="hero"><div class="container hero-inner"><div><span class="eyebrow"><span class="dot"></span> Marketplace de contas de jogos</span><h1>Encontre contas, <span class="accent">venda</span> a sua e negocie direto.</h1><p class="lead">O VaultPlay conecta quem quer vender uma conta a quem quer comprar, com contato direto pelo WhatsApp e sem intermediários.</p><div class="hero-cta"><a href="#/vender" class="btn btn-gold btn-lg">Anunciar grátis</a><a href="#/explorar" class="btn btn-ghost btn-lg btn-ghost-hero">Explorar contas</a></div><div class="hero-stats"><div><strong>'+ads.length+'+</strong><span>anúncios ativos</span></div><div><strong>'+games().length+'</strong><span>jogos</span></div><div><strong>Grátis</strong><span>para anunciar</span></div></div></div><div class="hero-visual" aria-hidden="true"><div class="fan-card fan-1"><span class="fc-cat">Free Fire</span><h5>Conta Diamante</h5><p>Skins raras e nível 70.</p><div class="fc-foot"><span>R$ 250,00</span><span class="fc-badge">NOVO</span></div></div><div class="fan-card fan-2"><span class="fc-cat">Fortnite</span><h5>80 skins</h5><p>Passe de batalha incluso.</p><div class="fc-foot"><span>R$ 400,00</span><span>2 dias</span></div></div><div class="fan-card fan-3"><span class="fc-cat">Valorant</span><h5>Conta Imortal</h5><p>Todos os agentes.</p><div class="fc-foot"><span>R$ 600,00</span><span class="fc-badge">TOP</span></div></div><div class="fan-card fan-4"><span class="fc-cat">Sua conta</span><h5>Anuncie aqui</h5><p>Publique e receba contatos.</p><div class="fc-foot"><span>Você</span><span>Hoje</span></div></div></div></div></section>'+
-  '<section class="section"><div class="container"><div class="section-head"><div><span class="tag-label">Recém-publicados</span><h2>Contas em destaque</h2></div><a href="#/explorar" class="link">Ver todas as contas →</a></div><div class="project-grid">'+ads.slice(0,6).map(card).join("")+"</div></div></section>"+steps();
-}
-function explorar(){
-  var g=["Todos"].concat(games());
-  return'<section class="section" style="padding-top:44px"><div class="container"><div class="section-head"><div><span class="tag-label">Catálogo</span><h2>Explorar contas</h2><p>Busque por jogo, rank, skins ou itens.</p></div></div><div class="filters-bar" style="margin-bottom:16px"><input id="q" class="search-input" type="search" placeholder="Buscar contas por jogo, título ou descrição…"></div><div id="chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px">'+g.map(function(x){var v=x==="Todos"?"":x;return'<button class="btn btn-sm '+(cur===v?"btn-primary":"btn-ghost")+'" data-g="'+esc(v)+'">'+esc(x)+"</button>"}).join("")+'</div><div class="project-grid" id="list"></div><p id="empty" style="display:none;text-align:center;color:var(--ink-600);padding:40px 0">Nenhum anúncio encontrado.</p></div></section>';
-}
-function fill(){
-  var q=($("#q")||{value:""}).value.toLowerCase();
-  var out=ads.filter(function(a){return(!cur||a.game===cur)&&(a.title+a.desc+a.game).toLowerCase().indexOf(q)>-1});
-  $("#list").innerHTML=out.map(card).join("");$("#empty").style.display=out.length?"none":"block";
-}
-function vender(){
-  return'<section class="section" style="padding-top:44px"><div class="container" style="max-width:600px"><div class="auth-card"><h2>Anunciar minha conta</h2><p class="sub">Só o seu WhatsApp fica disponível para os interessados.</p><div class="field"><label>Jogo</label><input id="f-game" maxlength="40" placeholder="Ex.: Free Fire, Fortnite, Valorant"></div><div class="field"><label>Título do anúncio</label><input id="f-title" maxlength="80" placeholder="Ex.: Conta nível 70 com skins raras"></div><div class="field"><label>Descrição</label><textarea id="f-desc" rows="4" maxlength="500" placeholder="Nível, rank, itens, skins, vinculação..."></textarea></div><div class="field"><label>Preço (R$)</label><input id="f-price" type="number" min="0" step="0.01" inputmode="decimal"></div><div class="field"><label>WhatsApp com DDD</label><input id="f-phone" type="tel" inputmode="numeric" placeholder="11999999999"></div><div class="field-error" id="msg"></div><button class="btn btn-primary btn-lg" id="publish" style="width:100%">Publicar anúncio</button></div></div></section>';
-}
-function route(){
-  var h=location.hash.replace("#/","").split("?")[0];
-  if(h==="explorar"){app.innerHTML=explorar();fill();$("#q").oninput=fill;$("#chips").onclick=function(e){var b=e.target.closest("button");if(b){cur=b.getAttribute("data-g");route()}}}
-  else if(h==="vender"){app.innerHTML=vender();$("#publish").onclick=publish}
-  else if(h==="como"){app.innerHTML=steps()}
-  else app.innerHTML=home();
-  document.querySelectorAll(".main-nav a").forEach(function(a){a.classList.toggle("active",a.getAttribute("data-r")===h)});
-  var m=$("#mobileNav");m.classList.remove("open");document.body.style.overflow="";window.scrollTo(0,0);
-}
-function publish(){
-  var v=function(i){return $(i).value.trim()};
-  var a={id:Date.now(),game:v("#f-game"),title:v("#f-title"),desc:v("#f-desc"),price:parseFloat($("#f-price").value),phone:v("#f-phone").replace(/\D/g,"")};
-  if(!a.game||!a.title||isNaN(a.price)||a.phone.length<10){$("#msg").textContent="Preencha jogo, título, preço e um WhatsApp válido com DDD.";return}
-  ads.unshift(a);save();cur="";location.hash="#/explorar";
-}
-var SUN="☀",MOON="☾";
-function theme(t){document.documentElement.setAttribute("data-theme",t);$("#themeToggle").textContent=t==="dark"?SUN:MOON}
-$("#themeToggle").onclick=function(){var t=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";theme(t);try{localStorage.setItem("theme",t)}catch(e){}};
-$("#hamburgerBtn").onclick=function(){$("#mobileNav").classList.toggle("open")};
-theme(document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light");
-window.onhashchange=route;load();route();
+
+/* Dados iniciais (só na primeira visita) */
+(function seed() {
+  if (DB.get('users')) return;
+  DB.set('users', [
+    { id: 'u_admin', name: 'Administrador', email: 'admin@vaultplay.com', pass: 'admin123', role: 'admin', banned: false, created: Date.now() },
+    { id: 'u_demo', name: 'Rafael Souza', email: 'rafael@exemplo.com', pass: '123456', role: 'user', banned: false, created: Date.now() }
+  ]);
+  const mk = (game, title, price, rank, desc, contact) => ({ id: uid(), uid: 'u_demo', game, title, price, rank, desc, contact, img: '', status: 'approved', created: Date.now() - Math.random() * 6e8 });
+  DB.set('listings', [
+    mk('Valorant', 'Conta Ascendant 2 com 40 skins', 350, 'Ascendant 2', 'Conta full acesso, e-mail original incluso. Skins de facas e rifles raros.', '5511999990001'),
+    mk('Free Fire', 'Conta Mestre com passe e bundles', 180, 'Mestre', 'Nível 72, várias skins de arma e 2 bundles antigos. Vinculada ao Facebook.', '5511999990002'),
+    mk('Fortnite', 'Conta OG com skins de 2018', 900, 'Temporada 4', 'Skins da temporada 4 e 5, pickaxe rara. Troca de e-mail liberada.', 'Discord: rafael#2048'),
+    mk('League of Legends', 'Conta Diamante IV, 120 campeões', 420, 'Diamante IV', 'Todos os campeões liberados, 60 skins, sem punições.', '5511999990003'),
+    mk('CS2', 'Prime com inventário e Global Elite', 650, 'Global Elite', '2.400 horas, inventário com facas e luvas. Sem VAC.', 'Discord: rafael#2048'),
+    mk('Minecraft', 'Conta Java com capa Migrator', 120, 'Java + Bedrock', 'Conta original com capa rara e nome curto.', '5511999990004')
+  ]);
 })();
+
+/* Sessão */
+const me = () => { const id = DB.get('session'); return users().find(u => u.id === id && !u.banned) || null; };
+function guard(role) {
+  const u = me();
+  if (!u) { location.href = 'login.html'; throw 0; }
+  if (u.role !== role) { location.href = u.role === 'admin' ? 'admin.html' : 'dashboard.html'; throw 0; }
+  return u;
+}
+document.addEventListener('click', e => {
+  if (e.target.id === 'logout') { DB.set('session', null); location.href = 'index.html'; }
+});
+
+function renderNav() {
+  const el = $('#nav-actions'); if (!el) return;
+  const u = me();
+  el.innerHTML = u
+    ? `<a class="btn btn-ghost btn-sm" href="${u.role === 'admin' ? 'admin' : 'dashboard'}.html">Meu painel</a><button class="btn btn-primary btn-sm" id="logout">Sair</button>`
+    : `<a class="btn btn-ghost btn-sm" href="login.html">Entrar</a><a class="btn btn-primary btn-sm" href="register.html">Criar conta</a>`;
+}
+renderNav();
+
+/* Troca de seções nos dashboards */
+function initViews(titles) {
+  const show = v => {
+    $$('[data-view]').forEach(s => s.hidden = s.dataset.view !== v);
+    $$('.side nav button').forEach(b => b.classList.toggle('active', b.dataset.go === v));
+    $('#title').textContent = titles[v];
+  };
+  $$('.side nav button').forEach(b => b.onclick = () => show(b.dataset.go));
+  window.show = show; show(Object.keys(titles)[0]);
+}
+
+/* Card de anúncio */
+function thumb(l) {
+  const [a, b] = GAMES[l.game] || GAMES.Outro;
+  const grad = `linear-gradient(135deg,${a},${b})`;
+  const img = l.img && /^https?:\/\//.test(l.img) ? `url('${esc(l.img)}'),` : '';
+  return `<div class="thumb" style="background-image:${img}${grad}">${l.status === 'sold' ? '<span class="tag">Vendido</span>' : ''}<b>${esc(l.game)}</b></div>`;
+}
+const cardHTML = l => `<article class="card" data-id="${l.id}">${thumb(l)}<div class="card-body"><h3>${esc(l.title)}</h3><div class="chips"><span class="chip">${esc(l.rank || 'Sem rank')}</span></div><div class="card-foot"><span class="price">${brl(l.price)}</span><span class="seller">${esc(sellerName(l.uid))}</span></div></div></article>`;
+
+function openModal(id) {
+  const l = listings().find(x => x.id === id); if (!l) return;
+  const digits = l.contact.replace(/\D/g, '');
+  const wa = digits.length >= 10 ? `<a class="btn btn-primary btn-sm" target="_blank" rel="noopener" href="https://wa.me/${digits}">Abrir WhatsApp</a>` : '';
+  $('#sheet').innerHTML = `${thumb(l)}<div class="sheet-body"><h3>${esc(l.title)}</h3><div class="chips"><span class="chip">${esc(l.rank || 'Sem rank')}</span><span class="chip">${brl(l.price)}</span></div><p>${esc(l.desc)}</p><div class="contact"><span>${esc(l.contact)}</span>${wa}</div><small class="seller">Vendedor: ${esc(sellerName(l.uid))}. Combine o pagamento direto com o vendedor e confira a conta antes de pagar.</small><button class="btn btn-ghost" data-close="1">Fechar</button></div>`;
+  $('#modal').classList.add('open');
+}
+
+/* Vitrine (index.html) */
+if ($('#grid')) {
+  const gsel = $('#game');
+  Object.keys(GAMES).forEach(g => gsel.insertAdjacentHTML('beforeend', `<option>${g}</option>`));
+  const render = () => {
+    const q = $('#q').value.toLowerCase(), g = gsel.value, s = $('#sort').value;
+    const list = listings().filter(l => l.status === 'approved' && (!g || l.game === g) && (l.title + l.game + l.rank).toLowerCase().includes(q));
+    list.sort((a, b) => s === 'low' ? a.price - b.price : s === 'high' ? b.price - a.price : b.created - a.created);
+    $('#count').textContent = list.length + (list.length === 1 ? ' conta' : ' contas');
+    $('#grid').innerHTML = list.map(cardHTML).join('') || '<p class="empty">Nenhuma conta encontrada. Tente outro jogo ou outra busca.</p>';
+  };
+  ['q', 'game', 'sort'].forEach(id => $('#' + id).addEventListener('input', render));
+  render();
+  $('#grid').onclick = e => { const c = e.target.closest('.card'); if (c) openModal(c.dataset.id); };
+  $('#modal').onclick = e => { if (e.target.id === 'modal' || e.target.dataset.close) $('#modal').classList.remove('open'); };
+}
+
+/* Login */
+const loginForm = $('#login-form');
+if (loginForm) loginForm.onsubmit = e => {
+  e.preventDefault();
+  const f = new FormData(loginForm), email = f.get('email').trim().toLowerCase();
+  const u = users().find(x => x.email === email && x.pass === f.get('pass'));
+  if (!u) return $('#form-error').textContent = 'E-mail ou senha incorretos.';
+  if (u.banned) return $('#form-error').textContent = 'Esta conta foi suspensa.';
+  DB.set('session', u.id);
+  location.href = u.role === 'admin' ? 'admin.html' : 'dashboard.html';
+};
+
+/* Cadastro */
+const regForm = $('#register-form');
+if (regForm) regForm.onsubmit = e => {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(regForm)), err = m => $('#form-error').textContent = m;
+  const email = f.email.trim().toLowerCase();
+  if (f.pass.length < 6) return err('A senha precisa ter pelo menos 6 caracteres.');
+  if (f.pass !== f.pass2) return err('As senhas não são iguais.');
+  if (users().some(u => u.email === email)) return err('Este e-mail já tem cadastro. Entre na sua conta.');
+  const u = { id: uid(), name: f.name.trim(), email, pass: f.pass, role: 'user', banned: false, created: Date.now() };
+  DB.set('users', [...users(), u]);
+  DB.set('session', u.id);
+  location.href = 'dashboard.html';
+};
