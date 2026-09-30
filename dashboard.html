@@ -46,12 +46,16 @@
       <div class="panel">
         <h2>Dados da conta à venda</h2>
         <form class="form-grid" id="new-form">
-          <div class="field"><label for="f-game">Jogo</label><select id="f-game" name="game" required></select></div>
-          <div class="field"><label for="f-rank">Rank ou nível</label><input id="f-rank" name="rank" placeholder="Ex.: Diamante IV"></div>
+          <div class="field span2"><label>Jogo</label><div class="gamepick" id="gamepick"></div><input type="hidden" name="game" id="f-game"></div>
           <div class="field span2"><label for="f-title">Título do anúncio</label><input id="f-title" name="title" required maxlength="70" placeholder="Ex.: Conta Ascendant com 40 skins"></div>
+          <div class="field"><label for="f-rank">Rank ou nível</label><input id="f-rank" name="rank" placeholder="Ex.: Diamante IV"></div>
           <div class="field"><label for="f-price">Preço (R$)</label><input id="f-price" name="price" type="number" min="1" step="0.01" required></div>
-          <div class="field"><label for="f-contact">Seu contato</label><input id="f-contact" name="contact" required placeholder="WhatsApp com DDD ou usuário do Discord"></div>
-          <div class="field span2"><label for="f-img">Link de uma imagem (opcional)</label><input id="f-img" name="img" type="url" placeholder="https://..."></div>
+          <div class="field span2"><label for="f-contact">Seu contato</label><input id="f-contact" name="contact" required placeholder="WhatsApp com DDD ou usuário do Discord"></div>
+          <div class="field span2"><label>Fotos da conta</label>
+            <label class="drop" for="f-files"><span class="pi" data-ico="image"></span><b>Clique para escolher as fotos</b><small>ou arraste para cá. Até 4 fotos, JPG ou PNG. A primeira é a capa.</small></label>
+            <input id="f-files" type="file" accept="image/*" multiple hidden>
+            <div class="previews" id="previews"></div>
+          </div>
           <div class="field span2"><label for="f-desc">Descrição</label><textarea id="f-desc" name="desc" required placeholder="Skins, nível, itens raros, o que está incluso na venda"></textarea></div>
           <div class="span2"><button class="btn btn-primary" type="submit">Enviar para análise</button></div>
         </form>
