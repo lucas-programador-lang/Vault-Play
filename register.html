@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Criar conta — VaultPlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="auth">
+  <aside class="auth-side">
+    <a class="logo" href="index.html"><i>V</i>VaultPlay</a>
+    <div>
+      <h2>Crie sua conta e comece a anunciar.</h2>
+      <p>Cada anúncio passa por uma análise rápida antes de aparecer na vitrine.</p>
+    </div>
+    <small>&copy; VaultPlay</small>
+  </aside>
+  <main class="auth-main">
+    <form class="auth-box" id="register-form">
+      <h1>Criar conta</h1>
+      <p>Leva menos de um minuto.</p>
+      <div class="field"><label for="name">Nome</label><input id="name" name="name" required autocomplete="name"></div>
+      <div class="field"><label for="email">E-mail</label><input id="email" name="email" type="email" required autocomplete="email"></div>
+      <div class="field"><label for="pass">Senha</label><input id="pass" name="pass" type="password" required minlength="6" autocomplete="new-password"></div>
+      <div class="field"><label for="pass2">Repita a senha</label><input id="pass2" name="pass2" type="password" required autocomplete="new-password"></div>
+      <div class="error" id="form-error" role="alert"></div>
+      <button class="btn btn-primary btn-block" type="submit">Criar conta</button>
+      <p class="alt">Já tem conta? <a href="login.html">Entrar</a></p>
+    </form>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
