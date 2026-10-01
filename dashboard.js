@@ -93,7 +93,7 @@ $('#new-form').onsubmit = async e => {
     await load(); show('mine');
   } catch (err) {
     console.error(err);
-    toast('Não foi possível enviar. Confira as regras do Firestore e do Storage.');
+    toast('Não foi possível enviar. Confira as regras do Realtime Database e do Storage.');
   }
   btn.disabled = false; btn.textContent = 'Enviar para análise';
 };
