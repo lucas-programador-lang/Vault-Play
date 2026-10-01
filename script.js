@@ -1,14 +1,9 @@
-/* VaultPlay — código compartilhado.
-   Os dados ficam no localStorage do navegador (etapa 1).
-   Na etapa 2 trocamos por Firebase para todos verem os mesmos anúncios. */
+/* VaultPlay — código compartilhado, conectado ao Firebase (login, anúncios, fotos). */
+import { auth, db, storage, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, ref, uploadString, getDownloadURL } from './firebase.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-
-const DB = {
-  get(k, d) { try { const v = JSON.parse(localStorage.getItem('vp_' + k)); return v ?? d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem('vp_' + k, JSON.stringify(v)); return true; } catch { return false; } }
-};
+const pref = { get: k => localStorage.getItem('vp_' + k) === '1', set: (k, v) => localStorage.setItem('vp_' + k, v ? '1' : '0') };
 
 const GAMES = {
   'Free Fire': ['#f59e0b', '#b91c1c'], 'Valorant': ['#ef4444', '#7f1d1d'],
@@ -18,53 +13,45 @@ const GAMES = {
   'Outro': ['#0891b2', '#0b3a4a']
 };
 const STATUS = { pending: 'Em análise', approved: 'Ativo', sold: 'Vendido', rejected: 'Recusado' };
-
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const users = () => DB.get('users', []);
-const listings = () => DB.get('listings', []);
-const patch = (id, ch) => DB.set('listings', listings().map(l => l.id === id ? { ...l, ...ch } : l));
-const drop = id => DB.set('listings', listings().filter(l => l.id !== id));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const brl = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const sellerName = id => (users().find(u => u.id === id) || {}).name || 'Vendedor';
 const badge = s => `<span class="badge b-${s}">${STATUS[s]}</span>`;
-
 function toast(msg) {
   const t = $('#toast'); if (!t) return;
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2600);
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-/* Dados iniciais (só na primeira visita) */
-(function seed() {
-  if (DB.get('users')) return;
-  DB.set('users', [
-    { id: 'u_admin', name: 'Administrador', email: 'admin@vaultplay.com', pass: 'admin123', role: 'admin', banned: false, created: Date.now() },
-    { id: 'u_demo', name: 'Rafael Souza', email: 'rafael@exemplo.com', pass: '123456', role: 'user', banned: false, created: Date.now() }
-  ]);
-  const mk = (game, title, price, rank, desc, contact) => ({ id: uid(), uid: 'u_demo', game, title, price, rank, desc, contact, img: '', status: 'approved', created: Date.now() - Math.random() * 6e8 });
-  DB.set('listings', [
-    mk('Valorant', 'Conta Ascendant 2 com 40 skins', 350, 'Ascendant 2', 'Conta full acesso, e-mail original incluso. Skins de facas e rifles raros.', '5511999990001'),
-    mk('Free Fire', 'Conta Mestre com passe e bundles', 180, 'Mestre', 'Nível 72, várias skins de arma e 2 bundles antigos. Vinculada ao Facebook.', '5511999990002'),
-    mk('Fortnite', 'Conta OG com skins de 2018', 900, 'Temporada 4', 'Skins da temporada 4 e 5, pickaxe rara. Troca de e-mail liberada.', 'Discord: rafael#2048'),
-    mk('League of Legends', 'Conta Diamante IV, 120 campeões', 420, 'Diamante IV', 'Todos os campeões liberados, 60 skins, sem punições.', '5511999990003'),
-    mk('CS2', 'Prime com inventário e Global Elite', 650, 'Global Elite', '2.400 horas, inventário com facas e luvas. Sem VAC.', 'Discord: rafael#2048'),
-    mk('Minecraft', 'Conta Java com capa Migrator', 120, 'Java + Bedrock', 'Conta original com capa rara e nome curto.', '5511999990004')
-  ]);
-})();
-
-/* Sessão */
-const me = () => { const id = DB.get('session'); return users().find(u => u.id === id && !u.banned) || null; };
-function guard(role) {
-  const u = me();
-  if (!u) { location.href = 'login.html'; throw 0; }
-  if (u.role !== role) { location.href = u.role === 'admin' ? 'admin.html' : 'dashboard.html'; throw 0; }
+/* ===== Sessão (Firebase Authentication + perfil no Firestore) ===== */
+let current = null;
+async function loadProfile(fb, create = false) {
+  const r = doc(db, 'users', fb.uid);
+  let s = await getDoc(r);
+  if (!s.exists() && create) {
+    await setDoc(r, { name: (fb.email || 'Usuário').split('@')[0], email: fb.email, role: 'user', banned: false, created: Date.now() });
+    s = await getDoc(r);
+  }
+  return s.exists() ? { id: fb.uid, ...s.data() } : null;
+}
+const ready = new Promise(res => {
+  onAuthStateChanged(auth, async fb => {
+    try { current = fb ? await loadProfile(fb) : null; } catch (e) { console.error(e); current = null; }
+    if (current && current.banned) { current = null; signOut(auth); }
+    res(current);
+  });
+});
+const me = () => current;
+async function guard(role) {
+  const u = await ready;
+  if (!u || u.role !== role) {
+    location.href = !u ? 'login.html' : u.role === 'admin' ? 'admin.html' : 'dashboard.html';
+    await new Promise(() => {});
+  }
   return u;
 }
-document.addEventListener('click', e => {
-  if (e.target.id === 'logout') { DB.set('session', null); location.href = 'index.html'; }
+document.addEventListener('click', async e => {
+  if (e.target.closest('#logout')) { await signOut(auth); location.href = 'index.html'; }
 });
-
 function renderNav() {
   const el = $('#nav-actions'); if (!el) return;
   const u = me();
@@ -72,7 +59,36 @@ function renderNav() {
     ? `<a class="btn btn-ghost btn-sm" href="${u.role === 'admin' ? 'admin' : 'dashboard'}.html">Meu painel</a><button class="btn btn-primary btn-sm" id="logout">Sair</button>`
     : `<a class="btn btn-ghost btn-sm" href="login.html">Entrar</a><a class="btn btn-primary btn-sm" href="register.html">Criar conta</a>`;
 }
-renderNav();
+
+/* ===== Dados (Firestore e Storage) ===== */
+const cache = {};
+const col = n => collection(db, n);
+const withId = d => ({ id: d.id, ...d.data() });
+const fetchListings = async q => { const l = (await getDocs(q)).docs.map(withId); l.forEach(x => cache[x.id] = x); return l; };
+const fetchApproved = () => fetchListings(query(col('listings'), where('status', '==', 'approved')));
+const fetchMine = uid => fetchListings(query(col('listings'), where('uid', '==', uid)));
+const fetchAll = () => fetchListings(col('listings'));
+const fetchUsers = async () => (await getDocs(col('users'))).docs.map(withId);
+const patch = (id, ch) => updateDoc(doc(db, 'listings', id), ch);
+const drop = id => deleteDoc(doc(db, 'listings', id));
+const setBanned = (id, banned) => updateDoc(doc(db, 'users', id), { banned });
+
+/* Envia as fotos para o Storage e salva o anúncio (entra como "em análise") */
+async function createListing(user, data, shots) {
+  const r = doc(col('listings')), imgs = [];
+  for (let i = 0; i < shots.length; i++) {
+    const f = ref(storage, `listings/${user.id}/${r.id}/${i}.jpg`);
+    await uploadString(f, shots[i], 'data_url');
+    imgs.push(await getDownloadURL(f));
+  }
+  await setDoc(r, { ...data, uid: user.id, sellerName: user.name, imgs, status: 'pending', created: Date.now() });
+}
+
+/* Jogos extras e logos enviadas pelo admin (documento config/games) */
+let cfg = { extra: [], logos: {} };
+try { const s = await getDoc(doc(db, 'config', 'games')); if (s.exists()) cfg = { extra: [], logos: {}, ...s.data() }; } catch (e) { console.warn('config', e); }
+const getCfg = () => cfg;
+async function saveCfg(next) { await setDoc(doc(db, 'config', 'games'), next); cfg = next; }
 
 /* Ícones em SVG */
 const ICONS = {
@@ -118,8 +134,8 @@ function initViews(titles, counts) {
   $('.side nav').insertAdjacentHTML('beforebegin', '<small class="side-label">Menu</small>');
   out.insertAdjacentHTML('beforebegin', `<small class="side-label">Atalhos</small><a class="side-link" href="index.html">${ico('globe')}<span>Ver o site</span></a><button class="side-link" id="toggle" type="button">${ico('chev')}<span>Recolher menu</span></button>`);
   if (u) out.insertAdjacentHTML('beforebegin', `<div class="side-user"><span class="av">${esc(u.name[0].toUpperCase())}</span><div><b>${esc(u.name)}</b><small>${u.role === 'admin' ? 'Administrador' : 'Vendedor'}</small></div></div>`);
-  const setC = c => { document.body.classList.toggle('collapsed', c); DB.set('collapsed', c); };
-  setC(DB.get('collapsed', false));
+  const setC = c => { document.body.classList.toggle('collapsed', c); pref.set('collapsed', c); };
+  setC(pref.get('collapsed'));
   $('#toggle').onclick = () => setC(!document.body.classList.contains('collapsed'));
   window.refreshNav = () => {
     const c = counts ? counts() : {};
@@ -135,12 +151,12 @@ function initViews(titles, counts) {
 /* Card de anúncio */
 /* Jogos e logos */
 const slug = n => n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const gameNames = () => [...Object.keys(GAMES).filter(g => g !== 'Outro'), ...DB.get('xgames', []), 'Outro'];
+const gameNames = () => [...Object.keys(GAMES).filter(g => g !== 'Outro'), ...cfg.extra, 'Outro'];
 const gameColors = g => GAMES[g] || Object.values(GAMES)[[...g].reduce((t, c) => t + c.charCodeAt(0), 0) % (Object.keys(GAMES).length - 1)];
 const initials = g => (g.includes(' ') ? g.split(' ').map(w => w[0]).join('').slice(0, 3) : g.slice(0, 2)).toUpperCase();
 /* Logo: enviada pelo admin, ou arquivo logos/<nome-do-jogo>.png; sem nenhum dos dois, mostra as iniciais */
 function gameLogo(g, size = 40) {
-  const [a, b] = gameColors(g), src = DB.get('glogos', {})[g] || `logos/${slug(g)}.png`;
+  const [a, b] = gameColors(g), src = cfg.logos[g] || `logos/${slug(g)}.png`;
   return `<span class="glogo" style="--a:${a};--b:${b};--s:${size}px"><em>${esc(initials(g))}</em><img src="${esc(src)}" alt="" onerror="this.remove()"></span>`;
 }
 const photos = l => (l.imgs && l.imgs.length ? l.imgs : l.img ? [l.img] : []).filter(s => /^(https?:\/\/|data:image\/)/.test(s));
@@ -172,58 +188,79 @@ function thumb(l) {
   const bg = `${p ? `url('${esc(p)}'),` : ''}linear-gradient(135deg,${a},${b})`;
   return `<div class="thumb${p ? ' photo' : ''}" data-ini="${esc(initials(l.game))}" style="background-image:${bg}">${gameLogo(l.game, 40)}${l.status === 'sold' ? '<span class="tag">Vendido</span>' : ''}<b>${esc(l.game)}</b></div>`;
 }
-const cardHTML = l => `<article class="card" data-id="${l.id}">${thumb(l)}<div class="card-body"><h3>${esc(l.title)}</h3><div class="chips"><span class="chip">${esc(l.rank || 'Sem rank')}</span></div><div class="card-foot"><span class="price">${brl(l.price)}</span><span class="seller">${esc(sellerName(l.uid))}</span></div></div></article>`;
+const cardHTML = l => `<article class="card" data-id="${l.id}">${thumb(l)}<div class="card-body"><h3>${esc(l.title)}</h3><div class="chips"><span class="chip">${esc(l.rank || 'Sem rank')}</span></div><div class="card-foot"><span class="price">${brl(l.price)}</span><span class="seller">${esc(l.sellerName)}</span></div></div></article>`;
 
 function openModal(id) {
-  const l = listings().find(x => x.id === id); if (!l) return;
+  const l = cache[id]; if (!l) return;
   const ph = photos(l), digits = l.contact.replace(/\D/g, '');
   const wa = digits.length >= 10 ? `<a class="btn btn-primary btn-sm" target="_blank" rel="noopener" href="https://wa.me/${digits}">Abrir WhatsApp</a>` : '';
   const strip = ph.length > 1 ? `<div class="strip">${ph.map((p, i) => `<img src="${esc(p)}" alt="Foto ${i + 1}" data-full="${esc(p)}">`).join('')}</div>` : '';
-  $('#sheet').innerHTML = `${thumb(l)}${strip}<div class="sheet-body"><h3>${esc(l.title)}</h3><div class="chips"><span class="chip">${esc(l.rank || 'Sem rank')}</span><span class="chip">${brl(l.price)}</span></div><p>${esc(l.desc)}</p><div class="contact"><span>${esc(l.contact)}</span>${wa}</div><small class="seller">Vendedor: ${esc(sellerName(l.uid))}. Combine o pagamento direto com o vendedor e confira a conta antes de pagar.</small><button class="btn btn-ghost" data-close="1">Fechar</button></div>`;
+  $('#sheet').innerHTML = `${thumb(l)}${strip}<div class="sheet-body"><h3>${esc(l.title)}</h3><div class="chips"><span class="chip">${esc(l.rank || 'Sem rank')}</span><span class="chip">${brl(l.price)}</span></div><p>${esc(l.desc)}</p><div class="contact"><span>${esc(l.contact)}</span>${wa}</div><small class="seller">Vendedor: ${esc(l.sellerName)}. Combine o pagamento direto com o vendedor e confira a conta antes de pagar.</small><button class="btn btn-ghost" data-close="1">Fechar</button></div>`;
   $('#sheet').onclick = e => { const i = e.target.closest('[data-full]'); if (i) $('#sheet .thumb').style.backgroundImage = `url('${i.dataset.full.replace(/'/g, '%27')}')`; };
   $('#modal').classList.add('open');
 }
 
-/* Vitrine (index.html) */
+/* ===== Vitrine (index.html) ===== */
+await ready;
+renderNav();
+
 if ($('#grid')) {
   const gsel = $('#game');
-  gameNames().forEach(g => gsel.insertAdjacentHTML('beforeend', `<option>${g}</option>`));
+  gameNames().forEach(g => gsel.insertAdjacentHTML('beforeend', `<option>${esc(g)}</option>`));
+  let all = [];
   const render = () => {
     const q = $('#q').value.toLowerCase(), g = gsel.value, s = $('#sort').value;
-    const list = listings().filter(l => l.status === 'approved' && (!g || l.game === g) && (l.title + l.game + l.rank).toLowerCase().includes(q));
+    const list = all.filter(l => (!g || l.game === g) && (l.title + l.game + l.rank).toLowerCase().includes(q));
     list.sort((a, b) => s === 'low' ? a.price - b.price : s === 'high' ? b.price - a.price : b.created - a.created);
     $('#count').textContent = list.length + (list.length === 1 ? ' conta' : ' contas');
     $('#grid').innerHTML = list.map(cardHTML).join('') || '<p class="empty">Nenhuma conta encontrada. Tente outro jogo ou outra busca.</p>';
   };
   ['q', 'game', 'sort'].forEach(id => $('#' + id).addEventListener('input', render));
-  render();
   $('#grid').onclick = e => { const c = e.target.closest('.card'); if (c) openModal(c.dataset.id); };
   $('#modal').onclick = e => { if (e.target.id === 'modal' || e.target.dataset.close) $('#modal').classList.remove('open'); };
+  $('#grid').innerHTML = '<p class="empty">Carregando anúncios...</p>';
+  try { all = await fetchApproved(); render(); }
+  catch (e) { console.error(e); $('#grid').innerHTML = '<p class="empty">Não foi possível carregar os anúncios agora. Tente de novo em instantes.</p>'; }
 }
 
-/* Login */
+/* ===== Login e cadastro ===== */
+const authMsg = e => ({
+  'auth/invalid-credential': 'E-mail ou senha incorretos.',
+  'auth/invalid-email': 'Esse e-mail não é válido.',
+  'auth/email-already-in-use': 'Este e-mail já tem cadastro. Entre na sua conta.',
+  'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
+  'auth/too-many-requests': 'Muitas tentativas. Espere um pouco e tente de novo.',
+  'auth/network-request-failed': 'Sem conexão. Confira sua internet.',
+  'auth/operation-not-allowed': 'O login por e-mail e senha não está ativado no Firebase.',
+  'permission-denied': 'Sem permissão no Firestore. Confira se as regras foram publicadas.'
+}[e.code] || 'Algo deu errado. Tente de novo.');
+const busy = (f, on) => { const b = f.querySelector('[type=submit]'); b.disabled = on; };
+
 const loginForm = $('#login-form');
-if (loginForm) loginForm.onsubmit = e => {
+if (loginForm) loginForm.onsubmit = async e => {
   e.preventDefault();
-  const f = new FormData(loginForm), email = f.get('email').trim().toLowerCase();
-  const u = users().find(x => x.email === email && x.pass === f.get('pass'));
-  if (!u) return $('#form-error').textContent = 'E-mail ou senha incorretos.';
-  if (u.banned) return $('#form-error').textContent = 'Esta conta foi suspensa.';
-  DB.set('session', u.id);
-  location.href = u.role === 'admin' ? 'admin.html' : 'dashboard.html';
+  const f = new FormData(loginForm), err = m => $('#form-error').textContent = m;
+  err(''); busy(loginForm, true);
+  try {
+    const cred = await signInWithEmailAndPassword(auth, f.get('email').trim(), f.get('pass'));
+    const p = await loadProfile(cred.user, true);
+    if (p.banned) { await signOut(auth); busy(loginForm, false); return err('Esta conta foi suspensa.'); }
+    location.href = p.role === 'admin' ? 'admin.html' : 'dashboard.html';
+  } catch (x) { console.error(x); err(authMsg(x)); busy(loginForm, false); }
 };
 
-/* Cadastro */
 const regForm = $('#register-form');
-if (regForm) regForm.onsubmit = e => {
+if (regForm) regForm.onsubmit = async e => {
   e.preventDefault();
   const f = Object.fromEntries(new FormData(regForm)), err = m => $('#form-error').textContent = m;
-  const email = f.email.trim().toLowerCase();
   if (f.pass.length < 6) return err('A senha precisa ter pelo menos 6 caracteres.');
   if (f.pass !== f.pass2) return err('As senhas não são iguais.');
-  if (users().some(u => u.email === email)) return err('Este e-mail já tem cadastro. Entre na sua conta.');
-  const u = { id: uid(), name: f.name.trim(), email, pass: f.pass, role: 'user', banned: false, created: Date.now() };
-  DB.set('users', [...users(), u]);
-  DB.set('session', u.id);
-  location.href = 'dashboard.html';
+  err(''); busy(regForm, true);
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), f.pass);
+    await setDoc(doc(db, 'users', cred.user.uid), { name: f.name.trim(), email: cred.user.email, role: 'user', banned: false, created: Date.now() });
+    location.href = 'dashboard.html';
+  } catch (x) { console.error(x); err(authMsg(x)); busy(regForm, false); }
 };
+
+export { $, $$, esc, brl, badge, toast, STATUS, guard, me, initViews, gameLogo, gameNames, compress, cardHTML, fetchMine, fetchAll, fetchUsers, createListing, patch, drop, setBanned, getCfg, saveCfg };
