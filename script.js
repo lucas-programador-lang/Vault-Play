@@ -1,5 +1,5 @@
 /* VaultPlay — vitrine (index.html) e funções compartilhadas pelos painéis. Login e cadastro ficam no auth.js. */
-import { auth, db, storage, onAuthStateChanged, signOut, loadProfile, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, ref, uploadString, getDownloadURL } from './firebase.js';
+import { auth, db, storage, onAuthStateChanged, signOut, loadProfile, ref, get, set, update, remove, push, query, orderByChild, equalTo, sref, uploadString, getDownloadURL } from './firebase.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -22,7 +22,7 @@ function toast(msg) {
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-/* ===== Sessão (Firebase Authentication + perfil no Firestore) ===== */
+/* ===== Sessão (Firebase Authentication + perfil no Realtime Database) ===== */
 let current = null;
 const ready = new Promise(res => {
   onAuthStateChanged(auth, async fb => {
@@ -51,35 +51,37 @@ function renderNav() {
     : `<a class="btn btn-ghost btn-sm" href="login.html">Entrar</a><a class="btn btn-primary btn-sm" href="register.html">Criar conta</a>`;
 }
 
-/* ===== Dados (Firestore e Storage) ===== */
+/* ===== Dados (Realtime Database e Storage) ===== */
 const cache = {};
-const col = n => collection(db, n);
-const withId = d => ({ id: d.id, ...d.data() });
-const fetchListings = async q => { const l = (await getDocs(q)).docs.map(withId); l.forEach(x => cache[x.id] = x); return l; };
-const fetchApproved = () => fetchListings(query(col('listings'), where('status', '==', 'approved')));
-const fetchMine = uid => fetchListings(query(col('listings'), where('uid', '==', uid)));
-const fetchAll = () => fetchListings(col('listings'));
-const fetchUsers = async () => (await getDocs(col('users'))).docs.map(withId);
-const patch = (id, ch) => updateDoc(doc(db, 'listings', id), ch);
-const drop = id => deleteDoc(doc(db, 'listings', id));
-const setBanned = (id, banned) => updateDoc(doc(db, 'users', id), { banned });
+const rows = snap => Object.entries(snap.val() || {}).map(([id, d]) => ({ id, ...d }));
+const fetchListings = async q => { const l = rows(await get(q)); l.forEach(x => cache[x.id] = x); return l; };
+const fetchApproved = () => fetchListings(query(ref(db, 'listings'), orderByChild('status'), equalTo('approved')));
+const fetchMine = uid => fetchListings(query(ref(db, 'listings'), orderByChild('uid'), equalTo(uid)));
+const fetchAll = () => fetchListings(ref(db, 'listings'));
+const fetchUsers = async () => rows(await get(ref(db, 'users')));
+const patch = (id, ch) => update(ref(db, 'listings/' + id), ch);
+const drop = id => remove(ref(db, 'listings/' + id));
+const setBanned = (id, banned) => update(ref(db, 'users/' + id), { banned });
 
 /* Envia as fotos para o Storage e salva o anúncio (entra como "em análise") */
 async function createListing(user, data, shots) {
-  const r = doc(col('listings')), imgs = [];
+  const r = push(ref(db, 'listings')), imgs = [];
   for (let i = 0; i < shots.length; i++) {
-    const f = ref(storage, `listings/${user.id}/${r.id}/${i}.jpg`);
+    const f = sref(storage, `listings/${user.id}/${r.key}/${i}.jpg`);
     await uploadString(f, shots[i], 'data_url');
     imgs.push(await getDownloadURL(f));
   }
-  await setDoc(r, { ...data, uid: user.id, sellerName: user.name, imgs, status: 'pending', created: Date.now() });
+  await set(r, { ...data, uid: user.id, sellerName: user.name, imgs, status: 'pending', created: Date.now() });
 }
 
-/* Jogos extras e logos enviadas pelo admin (documento config/games) */
+/* Jogos extras e logos enviadas pelo admin (config/games). As logos usam o nome sem acentos como chave. */
 let cfg = { extra: [], logos: {} };
-try { const s = await getDoc(doc(db, 'config', 'games')); if (s.exists()) cfg = { extra: [], logos: {}, ...s.data() }; } catch (e) { console.warn('config', e); }
+try {
+  const s = await get(ref(db, 'config/games'));
+  if (s.exists()) { const v = s.val(); cfg = { extra: Object.values(v.extra || {}), logos: v.logos || {} }; }
+} catch (e) { console.warn('config', e); }
 const getCfg = () => cfg;
-async function saveCfg(next) { await setDoc(doc(db, 'config', 'games'), next); cfg = next; }
+async function saveCfg(next) { await set(ref(db, 'config/games'), { extra: next.extra, logos: next.logos }); cfg = next; }
 
 /* Ícones em SVG */
 const ICONS = {
@@ -147,7 +149,7 @@ const gameColors = g => GAMES[g] || Object.values(GAMES)[[...g].reduce((t, c) =>
 const initials = g => (g.includes(' ') ? g.split(' ').map(w => w[0]).join('').slice(0, 3) : g.slice(0, 2)).toUpperCase();
 /* Logo: enviada pelo admin, ou arquivo logos/<nome-do-jogo>.png; sem nenhum dos dois, mostra as iniciais */
 function gameLogo(g, size = 40) {
-  const [a, b] = gameColors(g), src = cfg.logos[g] || `logos/${slug(g)}.png`;
+  const [a, b] = gameColors(g), src = cfg.logos[slug(g)] || `logos/${slug(g)}.png`;
   return `<span class="glogo" style="--a:${a};--b:${b};--s:${size}px"><em>${esc(initials(g))}</em><img src="${esc(src)}" alt="" onerror="this.remove()"></span>`;
 }
 const photos = l => (l.imgs && l.imgs.length ? l.imgs : l.img ? [l.img] : []).filter(s => /^(https?:\/\/|data:image\/)/.test(s));
@@ -214,4 +216,4 @@ if ($('#grid')) {
   catch (e) { console.error(e); $('#grid').innerHTML = '<p class="empty">Não foi possível carregar os anúncios agora. Tente de novo em instantes.</p>'; }
 }
 
-export { $, $$, esc, brl, badge, toast, STATUS, guard, me, initViews, gameLogo, gameNames, compress, cardHTML, fetchMine, fetchAll, fetchUsers, createListing, patch, drop, setBanned, getCfg, saveCfg };
+export { $, $$, slug, esc, brl, badge, toast, STATUS, guard, me, initViews, gameLogo, gameNames, compress, cardHTML, fetchMine, fetchAll, fetchUsers, createListing, patch, drop, setBanned, getCfg, saveCfg };
