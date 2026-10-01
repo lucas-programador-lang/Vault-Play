@@ -1,9 +1,12 @@
-/* Painel do usuário: estatísticas, meus anúncios e criação de anúncio */
-const user = guard('user');
+/* Painel do usuário: estatísticas, meus anúncios e criação de anúncio (Firebase) */
+import { $, $$, guard, initViews, esc, brl, badge, toast, cardHTML, gameLogo, gameNames, compress, fetchMine, createListing, patch, drop } from './script.js';
+
+const user = await guard('user');
+let mine = [];
 $('#who').textContent = user.name;
 initViews(
   { overview: 'Visão geral', mine: 'Meus anúncios', new: 'Novo anúncio' },
-  () => ({ mine: listings().filter(l => l.uid === user.id && l.status === 'pending').length })
+  () => ({ mine: mine.filter(l => l.status === 'pending').length })
 );
 
 /* Escolha do jogo com logo */
@@ -15,7 +18,7 @@ function pickGame(g) {
 $('#gamepick').onclick = e => { const t = e.target.closest('.gtile'); if (t) pickGame(t.dataset.g); };
 pickGame(gameNames()[0]);
 
-/* Envio de fotos pelo computador ou celular */
+/* Fotos escolhidas no computador ou celular (reduzidas antes do envio) */
 let sel = [];
 function drawPreviews() {
   $('#previews').innerHTML = sel.map((p, i) => `<div class="pv"><img src="${p}" alt="Foto ${i + 1}">${i === 0 ? '<span>Capa</span>' : ''}<button type="button" data-rm="${i}" aria-label="Remover foto">&times;</button></div>`).join('');
@@ -23,7 +26,7 @@ function drawPreviews() {
 async function addFiles(files) {
   const imgs = [...files].filter(f => f.type.startsWith('image/')).slice(0, 4 - sel.length);
   if (!imgs.length) return toast(sel.length >= 4 ? 'Você já adicionou 4 fotos.' : 'Escolha arquivos de imagem.');
-  for (const f of imgs) { try { sel.push(await compress(f)); } catch { toast('Não foi possível ler ' + f.name); } }
+  for (const f of imgs) { try { sel.push(await compress(f, 1000, 'image/jpeg', .78)); } catch { toast('Não foi possível ler ' + f.name); } }
   drawPreviews();
 }
 $('#f-files').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
@@ -34,12 +37,12 @@ dz.addEventListener('drop', e => { e.preventDefault(); addFiles(e.dataTransfer.f
 $('#previews').onclick = e => { const b = e.target.closest('[data-rm]'); if (b) { sel.splice(+b.dataset.rm, 1); drawPreviews(); } };
 
 function render() {
-  const mine = listings().filter(l => l.uid === user.id).sort((a, b) => b.created - a.created);
-  const n = s => mine.filter(l => l.status === s).length;
-  const open = mine.filter(l => l.status === 'approved');
+  const list = [...mine].sort((a, b) => b.created - a.created);
+  const n = s => list.filter(l => l.status === s).length;
+  const open = list.filter(l => l.status === 'approved');
 
   $('#stats').innerHTML = [
-    ['Anúncios', mine.length],
+    ['Anúncios', list.length],
     ['Ativos', n('approved')],
     ['Em análise', n('pending')],
     ['Vendidos', n('sold')],
@@ -49,7 +52,7 @@ function render() {
   $('#preview').innerHTML = open.slice(0, 3).map(cardHTML).join('')
     || '<p class="empty">Você ainda não tem anúncios ativos. Crie o primeiro em "Novo anúncio".</p>';
 
-  $('#rows').innerHTML = mine.map(l => `
+  $('#rows').innerHTML = list.map(l => `
     <tr>
       <td><div class="rowtitle">${gameLogo(l.game, 36)}<div><b>${esc(l.title)}</b><br><small class="seller">${esc(l.game)}</small></div></div></td>
       <td>${brl(l.price)}</td>
@@ -62,26 +65,37 @@ function render() {
   refreshNav();
 }
 
-$('#rows').onclick = e => {
-  const b = e.target.closest('[data-act]'); if (!b) return;
-  if (b.dataset.act === 'sold') { patch(b.dataset.id, { status: 'sold' }); toast('Anúncio marcado como vendido.'); }
-  if (b.dataset.act === 'del' && confirm('Excluir este anúncio? Essa ação não pode ser desfeita.')) { drop(b.dataset.id); toast('Anúncio excluído.'); }
+async function load() {
+  try { mine = await fetchMine(user.id); }
+  catch (e) { console.error(e); toast('Não foi possível carregar seus anúncios.'); }
   render();
+}
+
+$('#rows').onclick = async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  try {
+    if (b.dataset.act === 'sold') { await patch(b.dataset.id, { status: 'sold' }); toast('Anúncio marcado como vendido.'); }
+    if (b.dataset.act === 'del' && confirm('Excluir este anúncio? Essa ação não pode ser desfeita.')) { await drop(b.dataset.id); toast('Anúncio excluído.'); }
+  } catch (err) { console.error(err); toast('Não foi possível concluir. Tente de novo.'); }
+  load();
 };
 
-$('#new-form').onsubmit = e => {
+$('#new-form').onsubmit = async e => {
   e.preventDefault();
   const f = Object.fromEntries(new FormData(e.target));
   if (!f.game) return toast('Escolha o jogo da conta.');
-  const saved = DB.set('listings', [{
-    id: uid(), uid: user.id, game: f.game, title: f.title.trim(), price: +f.price,
-    rank: f.rank.trim(), desc: f.desc.trim(), contact: f.contact.trim(), imgs: sel,
-    status: 'pending', created: Date.now()
-  }, ...listings()]);
-  if (!saved) return toast('Sem espaço no navegador. Use menos fotos ou exclua anúncios antigos.');
-  e.target.reset(); sel = []; drawPreviews(); pickGame(gameNames()[0]);
-  toast('Anúncio enviado para análise.');
-  render(); show('mine');
+  const btn = e.target.querySelector('[type=submit]');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    await createListing(user, { game: f.game, title: f.title.trim(), price: +f.price, rank: f.rank.trim(), desc: f.desc.trim(), contact: f.contact.trim() }, sel);
+    e.target.reset(); sel = []; drawPreviews(); pickGame(gameNames()[0]);
+    toast('Anúncio enviado para análise.');
+    await load(); show('mine');
+  } catch (err) {
+    console.error(err);
+    toast('Não foi possível enviar. Confira as regras do Firestore e do Storage.');
+  }
+  btn.disabled = false; btn.textContent = 'Enviar para análise';
 };
 
-render();
+await load();
