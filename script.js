@@ -1,5 +1,5 @@
-/* VaultPlay — código compartilhado, conectado ao Firebase (login, anúncios, fotos). */
-import { auth, db, storage, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, ref, uploadString, getDownloadURL } from './firebase.js';
+/* VaultPlay — vitrine (index.html) e funções compartilhadas pelos painéis. Login e cadastro ficam no auth.js. */
+import { auth, db, storage, onAuthStateChanged, signOut, loadProfile, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, ref, uploadString, getDownloadURL } from './firebase.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -24,15 +24,6 @@ function toast(msg) {
 
 /* ===== Sessão (Firebase Authentication + perfil no Firestore) ===== */
 let current = null;
-async function loadProfile(fb, create = false) {
-  const r = doc(db, 'users', fb.uid);
-  let s = await getDoc(r);
-  if (!s.exists() && create) {
-    await setDoc(r, { name: (fb.email || 'Usuário').split('@')[0], email: fb.email, role: 'user', banned: false, created: Date.now() });
-    s = await getDoc(r);
-  }
-  return s.exists() ? { id: fb.uid, ...s.data() } : null;
-}
 const ready = new Promise(res => {
   onAuthStateChanged(auth, async fb => {
     try { current = fb ? await loadProfile(fb) : null; } catch (e) { console.error(e); current = null; }
@@ -222,45 +213,5 @@ if ($('#grid')) {
   try { all = await fetchApproved(); render(); }
   catch (e) { console.error(e); $('#grid').innerHTML = '<p class="empty">Não foi possível carregar os anúncios agora. Tente de novo em instantes.</p>'; }
 }
-
-/* ===== Login e cadastro ===== */
-const authMsg = e => ({
-  'auth/invalid-credential': 'E-mail ou senha incorretos.',
-  'auth/invalid-email': 'Esse e-mail não é válido.',
-  'auth/email-already-in-use': 'Este e-mail já tem cadastro. Entre na sua conta.',
-  'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
-  'auth/too-many-requests': 'Muitas tentativas. Espere um pouco e tente de novo.',
-  'auth/network-request-failed': 'Sem conexão. Confira sua internet.',
-  'auth/operation-not-allowed': 'O login por e-mail e senha não está ativado no Firebase.',
-  'permission-denied': 'Sem permissão no Firestore. Confira se as regras foram publicadas.'
-}[e.code] || 'Algo deu errado. Tente de novo.');
-const busy = (f, on) => { const b = f.querySelector('[type=submit]'); b.disabled = on; };
-
-const loginForm = $('#login-form');
-if (loginForm) loginForm.onsubmit = async e => {
-  e.preventDefault();
-  const f = new FormData(loginForm), err = m => $('#form-error').textContent = m;
-  err(''); busy(loginForm, true);
-  try {
-    const cred = await signInWithEmailAndPassword(auth, f.get('email').trim(), f.get('pass'));
-    const p = await loadProfile(cred.user, true);
-    if (p.banned) { await signOut(auth); busy(loginForm, false); return err('Esta conta foi suspensa.'); }
-    location.href = p.role === 'admin' ? 'admin.html' : 'dashboard.html';
-  } catch (x) { console.error(x); err(authMsg(x)); busy(loginForm, false); }
-};
-
-const regForm = $('#register-form');
-if (regForm) regForm.onsubmit = async e => {
-  e.preventDefault();
-  const f = Object.fromEntries(new FormData(regForm)), err = m => $('#form-error').textContent = m;
-  if (f.pass.length < 6) return err('A senha precisa ter pelo menos 6 caracteres.');
-  if (f.pass !== f.pass2) return err('As senhas não são iguais.');
-  err(''); busy(regForm, true);
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), f.pass);
-    await setDoc(doc(db, 'users', cred.user.uid), { name: f.name.trim(), email: cred.user.email, role: 'user', banned: false, created: Date.now() });
-    location.href = 'dashboard.html';
-  } catch (x) { console.error(x); err(authMsg(x)); busy(regForm, false); }
-};
 
 export { $, $$, esc, brl, badge, toast, STATUS, guard, me, initViews, gameLogo, gameNames, compress, cardHTML, fetchMine, fetchAll, fetchUsers, createListing, patch, drop, setBanned, getCfg, saveCfg };
