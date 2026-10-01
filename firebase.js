@@ -17,3 +17,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app), db = getFirestore(app), storage = getStorage(app);
 export { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, ref, uploadString, getDownloadURL };
+
+/* Lê o perfil do usuário em users/{uid}. Com create=true, cria o perfil se ainda não existir. */
+export async function loadProfile(fb, create = false) {
+  const r = doc(db, 'users', fb.uid);
+  let snap = await getDoc(r);
+  if (!snap.exists() && create) {
+    await setDoc(r, { name: (fb.email || 'Usuário').split('@')[0], email: fb.email, role: 'user', banned: false, created: Date.now() });
+    snap = await getDoc(r);
+  }
+  return snap.exists() ? { id: fb.uid, ...snap.data() } : null;
+}
